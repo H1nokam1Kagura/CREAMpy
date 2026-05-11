@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "creampy"
+version = "1.0.0"
+description = "DREAM Closed Economy partial-equilibrium surplus model — Python implementation"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.scripts]
+creampy = "creampy.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/H1nokam1Kagura/CREAMpy"
+"Bug Tracker" = "https://github.com/H1nokam1Kagura/CREAMpy/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
