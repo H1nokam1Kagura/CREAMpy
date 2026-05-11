@@ -1,0 +1,27 @@
+# M-Pesa Kenya synthetic reference dataset
+# Sources: Central Bank of Kenya (CBK) Annual Reports 2008-2020;
+#          GSMA State of Industry Reports 2010-2020;
+#          Jack, W. & Suri, T. (2011). Mobile Money: The Economics of M-Pesa. NBER WP 16721.
+#          Suri, T. & Jack, W. (2016). The long-run poverty and gender impacts of mobile money. Science 354(6317).
+# Notes:
+#   - agent_outlets: registered M-Pesa agent outlets (supply side / provider side)
+#   - registered_accounts_M: registered M-Pesa accounts in millions (demand side, cumulative)
+#   - active_accounts_M: accounts with >=1 transaction in last 30 days, millions
+#   - Figures are approximate; annual (December snapshot)
+#   - M_p_total approx 200,000 (estimated max agent outlet saturation for Kenya)
+#   - M_f_max approx 35M (Kenya adult population circa 2020)
+year,agent_outlets,registered_accounts_M,active_accounts_M,notes
+2007,450,0.1,0.07,Launch year
+2008,2500,1.0,0.6,Rapid early growth
+2009,8900,4.0,2.5,Pre-critical-mass acceleration
+2010,17000,9.5,6.0,Critical mass crossed approx this year
+2011,28000,14.0,9.5,Post-critical-mass acceleration
+2012,39000,17.5,12.0,Growth continues
+2013,79000,19.5,13.5,Agent network doubles
+2014,83000,20.5,14.5,Account saturation approaching
+2015,130000,22.0,16.0,Agent network expands to rural
+2016,142000,26.0,19.0,Active accounts surge
+2017,148000,27.5,21.0,Near saturation
+2018,161000,28.5,22.5,Mature market
+2019,168000,29.0,24.0,Slow growth
+2020,171000,51.7,25.0,COVID accelerates registration (not reflected in active)
