@@ -34,6 +34,11 @@ from .model import (
     k_from_yield_gain,
     __version__,
 )
+from .adoption.pipeline import (
+    TwoStageBassParams,
+    TwoStagePipeline,
+    TwoStagePipelineResult,
+)
 from .monte_carlo import (
     sample,
     MCBassParams,
@@ -54,6 +59,10 @@ __all__ = [
     "YearResult",
     "k_from_yield_gain",
     "__version__",
+    # Two-stage Bass pipeline
+    "TwoStageBassParams",
+    "TwoStagePipeline",
+    "TwoStagePipelineResult",
     # Monte Carlo
     "sample",
     "MCBassParams",
