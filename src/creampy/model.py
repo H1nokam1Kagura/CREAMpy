@@ -143,8 +143,8 @@ class ModelParams:
     eta:            float
     P0:             float
     Q0:             float
-    years:          list[int]
-    adoption_fracs: list[float]
+    years:          list[int]   = dataclasses.field(default_factory=list)
+    adoption_fracs: list[float] = dataclasses.field(default_factory=list)
     discount_rate:  float = 0.05
     base_year:      int   = 2025
     scenario:       str   = "central"
