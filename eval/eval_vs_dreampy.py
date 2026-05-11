@@ -59,10 +59,14 @@ import os
 import shutil
 import subprocess
 import sys
-import textwrap
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+
+# Add src/ to path once at import time so creampy is importable
+# when running this script directly (without pip install).
+_SRC = str(Path(__file__).parent.parent / "src")
+if _SRC not in sys.path:
+    sys.path.insert(0, _SRC)
 
 # ── Test vectors (shared by both modes) ──────────────────────────────────────
 
@@ -111,7 +115,6 @@ TEST_VECTORS = [
 
 def run_mode_a() -> dict:
     """Run built-in 9-case validation. Returns {passed, failed}."""
-    sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
     from creampy.__main__ import run_validation
     ok = run_validation()
     return {"passed": ok, "failed_count": 0 if ok else 1}
@@ -121,7 +124,6 @@ def run_mode_a() -> dict:
 
 def _creampy_results(tv: dict) -> dict:
     """Run CREAMpy on a test vector and return NPV results."""
-    sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
     from creampy import ClosedEconomy, ModelParams
     p = ModelParams(
         K=tv["K"], epsilon=tv["epsilon"], eta=tv["eta"],

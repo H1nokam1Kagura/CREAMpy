@@ -273,7 +273,7 @@ class ClosedEconomy:
         from datetime import date
 
         p = self.p
-        year_results: List[YearResult] = []
+        year_results: list[YearResult] = []
 
         for yr, adpt in zip(p.years, p.adoption_fracs):
             lag  = yr - p.base_year

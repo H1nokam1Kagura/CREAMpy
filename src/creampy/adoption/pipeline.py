@@ -63,7 +63,6 @@ from __future__ import annotations
 
 import csv
 import dataclasses
-from typing import Optional
 
 from ..model import ClosedEconomy, ModelParams, ModelResult
 from .bass import BassModel, BassParams, BassResult

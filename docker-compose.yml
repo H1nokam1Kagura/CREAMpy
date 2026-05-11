@@ -1,0 +1,67 @@
+# CREAMpy docker-compose — three service profiles for different use cases.
+#
+# Profile: validate (default)
+#   Runs the 36-test suite. Use as a health-check or CI gate.
+#   docker compose up validate
+#
+# Profile: pipeline
+#   Runs the full Bass + DREAM pipeline example and writes JSON to ./output/.
+#   docker compose up pipeline
+#
+# Profile: api  [placeholder]
+#   Stub for a future REST API wrapper (FastAPI, uvicorn).
+#   docker compose up api
+
+services:
+
+  # ── Validate: smoke-test / CI gate ────────────────────────────────────────
+  validate:
+    build: .
+    command: ["python", "-m", "pytest", "tests/", "-v", "--tb=short"]
+    volumes:
+      - ./src:/app/src:ro
+      - ./tests:/app/tests:ro
+
+  # ── Pipeline: run full example and emit JSON ───────────────────────────────
+  pipeline:
+    build: .
+    command:
+      - python
+      - -m
+      - creampy
+      - --yield-gain
+      - "0.15"
+      - --price
+      - "200"
+      - --qty
+      - "1000000"
+      - --start-year
+      - "2025"
+      - --end-year
+      - "2045"
+      - --ramp-years
+      - "10"
+      - --discount-rate
+      - "0.05"
+      - --out-json
+      - /output/result.json
+    volumes:
+      - ./output:/output   # result.json written here; create ./output first
+
+  # ── Bass only: generate adoption schedule CSV ──────────────────────────────
+  bass-export:
+    build: .
+    command:
+      - python
+      - -c
+      - |
+        from creampy.adoption import BassParams, BassModel
+        from creampy.adoption.pipeline import to_dreampy_csv
+        params = BassParams(p=0.01, q=0.40, ceiling=0.70, ptrs=0.80,
+                            t0=2025, years=list(range(2025, 2046)))
+        result = BassModel(params).run()
+        to_dreampy_csv(result, '/output/adoption.csv')
+        print(f'Peak year: {result.peak_year}')
+        print(f'Written: /output/adoption.csv')
+    volumes:
+      - ./output:/output

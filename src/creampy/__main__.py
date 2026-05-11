@@ -151,7 +151,7 @@ def run_validation() -> bool:
     return failed == 0
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
 
     if args.validate:
@@ -195,11 +195,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             "npv_CS": result.npv_CS,
             "params": {
                 "K": params.K, "epsilon": params.epsilon, "eta": params.eta,
-                "P0": params.P0, "Q0": params.Q0, "shift_type": params.shift_type,
+                "P0": params.P0, "Q0": params.Q0,
+                "shift_type": params.shift_type,
                 "discount_rate": params.discount_rate,
                 "base_year": params.base_year,
                 "scenario": params.scenario,
-                "shift_type": params.shift_type,
             },
             "year_results": [
                 {"year": r.year, "adoption": r.adoption,

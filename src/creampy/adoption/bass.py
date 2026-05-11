@@ -154,9 +154,9 @@ class BassResult:
     """
     params:        BassParams
     year_results:  list[BassYearResult]
-    peak_year:     int      # year with highest new_frac
-    peak_new_frac: float    # new adoption fraction at peak (unadjusted)
-    continuous_peak_offset: float   # ln(q/p)/(p+q) — continuous approximation
+    peak_year:     int | None   # year with highest new_frac; None if no post-launch years
+    peak_new_frac: float        # new adoption fraction at peak (unadjusted); 0.0 if no launch
+    continuous_peak_offset: float | None  # ln(q/p)/(p+q) years after t0; None when q<=p
 
     # Convenience views (same data as year_results, as plain lists)
     @property
@@ -235,15 +235,18 @@ class BassModel:
         par = self.p
         year_results: list[BassYearResult] = []
 
-        # Continuous-model peak approximation (valid when q > p)
+        # Continuous-model peak approximation (only valid when q > p).
+        # None signals "not applicable" rather than 0.0 which is ambiguous.
         if par.q > par.p:
-            continuous_peak_offset = math.log(par.q / par.p) / (par.p + par.q)
+            continuous_peak_offset: float | None = (
+                math.log(par.q / par.p) / (par.p + par.q)
+            )
         else:
-            continuous_peak_offset = 0.0  # peak is at or before t0
+            continuous_peak_offset = None  # p >= q: peak is at or before t0
 
-        cumul = 0.0           # cumulative adoption fraction (unadjusted)
-        peak_year  = par.t0
-        peak_new   = 0.0
+        cumul = 0.0
+        peak_year: int | None = None   # set on first post-launch year
+        peak_new  = 0.0
 
         for yr in par.years:
             if yr < par.t0:
@@ -255,7 +258,7 @@ class BassModel:
 
             new_frac, cumul = self._step(par.p, par.q, par.ceiling, cumul)
 
-            if new_frac > peak_new:
+            if peak_year is None or new_frac > peak_new:
                 peak_new  = new_frac
                 peak_year = yr
 

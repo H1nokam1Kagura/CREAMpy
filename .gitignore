@@ -11,3 +11,5 @@ venv/
 *.duckdb
 dreampy_eval_*/
 *.lnk
+output/
+adoption_for_dreampy.csv
