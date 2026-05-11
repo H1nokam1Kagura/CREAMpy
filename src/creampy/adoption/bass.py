@@ -112,6 +112,7 @@ class BassParams:
         population that will never adopt due to resource constraints,
         soil suitability, market access, or risk aversion.
         Set to 1.0 for a standard Bass model with no ceiling.
+        Ignored for any year where ``ceiling_series`` provides a value.
     t0 : int
         Launch year — the first calendar year in which adoption can occur.
         Years in ``years`` before ``t0`` are assigned A = 0.
@@ -124,13 +125,26 @@ class BassParams:
         Represents the probability that the technology pipeline succeeds
         and the product reaches the market.
         Set to 1.0 to return unadjusted (deterministic) adoption.
+    ceiling_series : list of float or None
+        Per-year ceiling values — one per entry in ``years``, in the same
+        order.  When provided, overrides the scalar ``ceiling`` for each
+        year.  Used by ``TwoStagePipeline`` to supply a time-varying
+        ceiling equal to the Stage-1 intermediary adoption at each period:
+
+          ceiling_series[t] = A_int(t) * ceiling_con
+
+        All values must be in (0, 1].  If the series reaches 0.0 for a
+        period (no intermediaries yet), that year produces zero adoption
+        regardless of p/q — the gate is closed.  Length must equal
+        len(years).
     """
-    p:       float
-    q:       float
-    ceiling: float
-    t0:      int
-    years:   list[int]
-    ptrs:    float = 1.0
+    p:              float
+    q:              float
+    ceiling:        float
+    t0:             int
+    years:          list[int]
+    ptrs:           float             = 1.0
+    ceiling_series: list[float] | None = None
 
 
 @dataclasses.dataclass
@@ -204,6 +218,18 @@ class BassModel:
                              "Use ptrs=1.0 for a deterministic (risk-ignored) run.")
         if not par.years:
             raise ValueError("years must be a non-empty list.")
+        if par.ceiling_series is not None:
+            if len(par.ceiling_series) != len(par.years):
+                raise ValueError(
+                    f"ceiling_series length ({len(par.ceiling_series)}) must equal "
+                    f"years length ({len(par.years)})."
+                )
+            bad = [v for v in par.ceiling_series if not (0.0 <= v <= 1.0)]
+            if bad:
+                raise ValueError(
+                    f"All ceiling_series values must be in [0, 1]: "
+                    f"{len(bad)} out-of-range value(s), first 3: {bad[:3]}"
+                )
 
     # ── Static per-year recurrence ────────────────────────────────────────────
 
@@ -244,19 +270,29 @@ class BassModel:
         else:
             continuous_peak_offset = None  # p >= q: peak is at or before t0
 
-        cumul = 0.0
-        peak_year: int | None = None   # set on first post-launch year
-        peak_new  = 0.0
+        cumul      = 0.0
+        peak_year: int | None = None
+        peak_new   = 0.0
+        use_series = par.ceiling_series is not None   # resolved once, not per-year
 
-        for yr in par.years:
+        for i, yr in enumerate(par.years):
             if yr < par.t0:
-                # Pre-launch: no adoption yet
                 year_results.append(BassYearResult(
                     year=yr, new_frac=0.0, cumul_frac=0.0, risk_adj_frac=0.0
                 ))
                 continue
 
-            new_frac, cumul = self._step(par.p, par.q, par.ceiling, cumul)
+            ceiling_t = par.ceiling_series[i] if use_series else par.ceiling
+
+            # Gate: if intermediary coverage is zero, no consumer adoption possible
+            if ceiling_t <= 0.0:
+                year_results.append(BassYearResult(
+                    year=yr, new_frac=0.0, cumul_frac=cumul,
+                    risk_adj_frac=cumul * par.ptrs,
+                ))
+                continue
+
+            new_frac, cumul = self._step(par.p, par.q, ceiling_t, cumul)
 
             if peak_year is None or new_frac > peak_new:
                 peak_new  = new_frac

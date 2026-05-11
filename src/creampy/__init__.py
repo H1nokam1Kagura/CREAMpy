@@ -34,6 +34,17 @@ from .model import (
     k_from_yield_gain,
     __version__,
 )
+from .monte_carlo import (
+    sample,
+    MCBassParams,
+    MCModelParams,
+    MCTwoStageParams,
+    MCNetworkPlatformParams,
+    MCResult,
+    run_bass_welfare_mc,
+    run_two_stage_welfare_mc,
+    run_platform_welfare_mc,
+)
 
 __all__ = [
     # Welfare model
@@ -43,6 +54,15 @@ __all__ = [
     "YearResult",
     "k_from_yield_gain",
     "__version__",
-    # Adoption sub-package re-exported for convenience
-    # (also importable as creampy.adoption.*)
+    # Monte Carlo
+    "sample",
+    "MCBassParams",
+    "MCModelParams",
+    "MCTwoStageParams",
+    "MCNetworkPlatformParams",
+    "MCResult",
+    "run_bass_welfare_mc",
+    "run_two_stage_welfare_mc",
+    "run_platform_welfare_mc",
+    # Adoption sub-package importable as creampy.adoption.*
 ]

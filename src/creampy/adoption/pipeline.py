@@ -67,9 +67,25 @@ import dataclasses
 from ..model import ClosedEconomy, ModelParams, ModelResult
 from .bass import BassModel, BassParams, BassResult
 
+
+def _assert_no_schedule(model_params: ModelParams) -> None:
+    """Raise if model_params already carries years/adoption_fracs.
+
+    Both Pipeline and TwoStagePipeline inject these from the adoption model.
+    Passing pre-filled values would be silently overwritten, so we fail fast.
+    """
+    if model_params.years or model_params.adoption_fracs:
+        raise ValueError(
+            "model_params.years and adoption_fracs must be empty — "
+            "the pipeline fills them from the adoption model output."
+        )
+
 __all__ = [
     "PipelineResult",
     "Pipeline",
+    "TwoStageBassParams",
+    "TwoStagePipelineResult",
+    "TwoStagePipeline",
     "to_dreampy_table",
     "to_dreampy_csv",
 ]
@@ -138,12 +154,7 @@ class Pipeline:
     """
 
     def __init__(self, bass_params: BassParams, model_params: ModelParams) -> None:
-        if model_params.years or model_params.adoption_fracs:
-            raise ValueError(
-                "model_params.years and model_params.adoption_fracs must be empty "
-                "(or default) when using Pipeline — they are filled from the Bass result. "
-                "Pass a ModelParams constructed without those two fields."
-            )
+        _assert_no_schedule(model_params)
         self.bass_params  = bass_params
         self.model_params = model_params
 
@@ -165,6 +176,169 @@ class Pipeline:
 
         welfare_result = ClosedEconomy(full_params).run()
         return PipelineResult(bass=bass_result, welfare=welfare_result)
+
+
+# ── Two-stage Bass pipeline ───────────────────────────────────────────────────
+
+@dataclasses.dataclass
+class TwoStageBassParams:
+    """Parameters for a two-stage Bass diffusion model.
+
+    Stage 1 — intermediary adoption (mills, distributors, manufacturers).
+    Stage 2 — consumer/end-user adoption, gated by Stage 1 coverage.
+
+    The Stage 2 effective ceiling at time t is:
+
+        ceiling_series_2[t] = A_int(t) * ceiling_con
+
+    where A_int(t) is the Stage 1 cumulative adoption fraction.  When no
+    intermediaries have adopted (A_int = 0), the consumer market is fully
+    closed.  As intermediaries come on board the accessible consumer market
+    grows proportionally, reaching ceiling_con at full intermediary saturation.
+
+    Typical ggo-hips use cases
+    --------------------------
+    - Nutrition fortification: mills adopt (Stage 1) → households buy
+      fortified product through those mills (Stage 2)
+    - Carbon crediting: project developers adopt MRV standard (Stage 1) →
+      smallholders join carbon programmes through those developers (Stage 2)
+    - Index insurance: insurance companies offer product (Stage 1) →
+      farmers buy policies through those companies (Stage 2)
+
+    Parameters
+    ----------
+    p_int, q_int : float
+        Bass coefficients for the intermediary (Stage 1) population.
+    ceiling_int : float
+        Maximum intermediary adoption fraction (0, 1].
+    p_con, q_con : float
+        Bass coefficients for the consumer/end-user (Stage 2) population.
+    ceiling_con : float
+        Maximum consumer adoption fraction given full intermediary coverage.
+        The effective ceiling at time t = A_int(t) * ceiling_con.
+    ptrs : float
+        Probability of technical and regulatory success.  Applied to
+        Stage 2 output only — Stage 1 is a mechanical gate, not a product.
+    t0 : int
+        Launch year.  Stage 1 starts here; Stage 2 cannot start before t0.
+    years : list of int
+        Projection years for both stages.
+    """
+    p_int:       float
+    q_int:       float
+    ceiling_int: float
+    p_con:       float
+    q_con:       float
+    ceiling_con: float
+    t0:          int
+    years:       list[int]
+    ptrs:        float = 1.0
+
+
+@dataclasses.dataclass
+class TwoStagePipelineResult:
+    """Output of a two-stage Bass + welfare pipeline run.
+
+    Attributes
+    ----------
+    stage1 : BassResult
+        Intermediary adoption schedule.
+    stage2 : BassResult
+        Consumer adoption schedule (time-varying ceiling from Stage 1).
+    welfare : ModelResult
+        NPV of producer and consumer surplus from ClosedEconomy.
+    """
+    stage1:  BassResult
+    stage2:  BassResult
+    welfare: ModelResult
+
+    @property
+    def adoption_fracs(self) -> list[float]:
+        """Stage 2 risk-adjusted fracs used in the welfare model."""
+        return self.stage2.adoption_fracs
+
+    @property
+    def years(self) -> list[int]:
+        return self.stage2.years
+
+
+class TwoStagePipeline:
+    """Two-stage Bass diffusion pipeline: intermediary → consumer → welfare.
+
+    Stage 1 runs a standard Bass model on the intermediary population.
+    Stage 2 runs Bass on the consumer population with a time-varying ceiling
+    equal to Stage 1 cumulative adoption × ceiling_con.  The welfare model
+    receives Stage 2's risk-adjusted adoption schedule.
+
+    ``model_params`` must NOT include ``years`` or ``adoption_fracs``
+    (Pipeline fills them from Stage 2).
+
+    Example
+    -------
+    >>> from creampy import ModelParams
+    >>> from creampy.adoption.pipeline import TwoStageBassParams, TwoStagePipeline
+    >>> ts = TwoStageBassParams(
+    ...     p_int=0.02, q_int=0.35, ceiling_int=0.60,
+    ...     p_con=0.005, q_con=0.30, ceiling_con=0.75,
+    ...     ptrs=0.80, t0=2025, years=list(range(2025, 2046)),
+    ... )
+    >>> model = ModelParams(K=0.12, epsilon=0.5, eta=-0.5,
+    ...                     P0=800.0, Q0=500_000.0,
+    ...                     discount_rate=0.05, base_year=2025)
+    >>> result = TwoStagePipeline(ts, model).run()
+    >>> print(f"NPV_W = USD {result.welfare.npv_W:,.0f}")
+    """
+
+    def __init__(self, params: TwoStageBassParams,
+                 model_params: ModelParams | None = None) -> None:
+        if model_params is not None:
+            _assert_no_schedule(model_params)
+        self.params       = params
+        self.model_params = model_params
+
+    def run_stages(self) -> tuple[BassResult, BassResult]:
+        """Run both Bass stages and return (stage1, stage2) without welfare.
+
+        Use this when you only need the adoption schedule — e.g. inside the
+        Monte Carlo runner where welfare parameters are sampled separately.
+        """
+        par = self.params
+        stage1 = BassModel(BassParams(
+            p=par.p_int, q=par.q_int, ceiling=par.ceiling_int,
+            ptrs=1.0, t0=par.t0, years=par.years,
+        )).run()
+        ceiling_series_2 = [A * par.ceiling_con for A in stage1.cumulative_fracs]
+        stage2 = BassModel(BassParams(
+            p=par.p_con, q=par.q_con,
+            ceiling=par.ceiling_con,
+            ceiling_series=ceiling_series_2,
+            ptrs=par.ptrs,
+            t0=par.t0, years=par.years,
+        )).run()
+        return stage1, stage2
+
+    def run(self) -> TwoStagePipelineResult:
+        """Execute both Bass stages and the welfare model.
+
+        Requires model_params to be set at construction time.
+        For adoption-only runs call run_stages() instead.
+        """
+        if self.model_params is None:
+            raise ValueError(
+                "model_params is required for run(). "
+                "Pass it at construction or call run_stages() for adoption only."
+            )
+        stage1, stage2 = self.run_stages()
+        full_params = dataclasses.replace(
+            self.model_params,
+            years=stage2.years,
+            adoption_fracs=stage2.adoption_fracs,
+        )
+        return TwoStagePipelineResult(
+            stage1=stage1, stage2=stage2,
+            welfare=ClosedEconomy(full_params).run(),
+        )
+
 
 
 # ── PATH B: DREAMpy export helpers ───────────────────────────────────────────
