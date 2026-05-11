@@ -1,0 +1,65 @@
+cff-version: 1.2.0
+message: "If you use CREAMpy in published research, please cite it as below."
+type: software
+title: "CREAMpy: Bass diffusion + DREAM closed-economy welfare model, Python implementation"
+version: 1.0.0
+date-released: "2026-05-11"
+license: MIT
+url: "https://github.com/H1nokam1Kagura/CREAMpy"
+repository-code: "https://github.com/H1nokam1Kagura/CREAMpy"
+
+authors:
+  - family-names: Hausmann
+    given-names: Neil
+
+abstract: >
+  CREAMpy is a Python implementation of the DREAM (Dynamic Research Evaluation
+  for Management) closed-economy partial-equilibrium surplus model, combined with
+  a discrete Bass diffusion adoption model. Together they form a complete,
+  Excel-free pipeline for estimating the economic welfare returns to agricultural
+  research investment: Bass diffusion generates the adoption schedule; the DREAM
+  welfare model translates it into producer and consumer surplus NPVs.
+  The implementation follows Alston, Norton & Pardey (1995) Ch. 4–5 and the
+  IFPRI DREAM manual (Wood, Maredia & Pardey 2001). Both K-shift (cost reduction)
+  and J-shift (yield-augmenting) supply shift conventions are supported.
+
+references:
+  - type: book
+    title: "Science Under Scarcity: Principles and Practice for Agricultural Research Evaluation and Priority Setting"
+    authors:
+      - family-names: Alston
+        given-names: Julian M.
+      - family-names: Norton
+        given-names: George W.
+      - family-names: Pardey
+        given-names: Philip G.
+    year: 1995
+    publisher:
+      name: Cornell University Press
+    notes: "Chapters 4–5 provide the closed-economy partial-equilibrium model implemented here."
+
+  - type: report
+    title: "Prioritizing agricultural research for sustainable development using DREAM version 3.0"
+    authors:
+      - family-names: Wood
+        given-names: Stanley
+      - family-names: Maredia
+        given-names: Mywish
+      - family-names: Pardey
+        given-names: Philip G.
+    year: 2001
+    institution:
+      name: International Food Policy Research Institute (IFPRI)
+      city: Washington DC
+
+  - type: article
+    title: "A new product growth for model consumer durables"
+    authors:
+      - family-names: Bass
+        given-names: Frank M.
+    year: 1969
+    journal: Management Science
+    volume: 15
+    issue: 5
+    pages: 215--227
+    doi: "10.1287/mnsc.15.5.215"

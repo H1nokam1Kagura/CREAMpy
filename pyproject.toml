@@ -5,21 +5,60 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "creampy"
 version = "1.0.0"
-description = "DREAM Closed Economy partial-equilibrium surplus model — Python implementation"
+description = "Bass diffusion + DREAM closed-economy welfare model — Python implementation for agricultural research impact evaluation"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.9"
 dependencies = []
 
+authors = [
+    { name = "Neil Hausmann" },
+]
+
+keywords = [
+    "agricultural economics",
+    "bass diffusion",
+    "adoption model",
+    "economic surplus",
+    "welfare analysis",
+    "research evaluation",
+    "DREAM",
+    "IFPRI",
+    "crop research",
+    "impact assessment",
+    "partial equilibrium",
+    "producer surplus",
+    "consumer surplus",
+]
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Office/Business :: Financial",
+    "Typing :: Typed",
+]
+
 [project.optional-dependencies]
 dev  = ["pytest>=7"]
-eval = ["openpyxl>=3.1"]   # required for DREAMpy cross-validation (eval/eval_vs_dreampy.py)
+eval = ["openpyxl>=3.1"]   # DREAMpy cross-validation harness only
 
 [project.scripts]
 creampy = "creampy.__main__:main"
 
 [project.urls]
-Homepage = "https://github.com/H1nokam1Kagura/CREAMpy"
+Homepage      = "https://github.com/H1nokam1Kagura/CREAMpy"
+Documentation = "https://github.com/H1nokam1Kagura/CREAMpy#readme"
+Source        = "https://github.com/H1nokam1Kagura/CREAMpy"
 "Bug Tracker" = "https://github.com/H1nokam1Kagura/CREAMpy/issues"
 
 [tool.setuptools.packages.find]

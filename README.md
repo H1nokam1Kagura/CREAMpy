@@ -1,15 +1,32 @@
 # CREAMpy
 
-**Crops Research EvaluAtion for Management — Python edition**
+**Crops Research Economic Adoption Model — Python edition**
 
-A clean, dependency-free Python implementation of the **DREAM Closed Economy**
-partial-equilibrium surplus model, used to estimate the economic welfare gains
-from agricultural research investment.
+[![CI](https://github.com/H1nokam1Kagura/CREAMpy/actions/workflows/ci.yml/badge.svg)](https://github.com/H1nokam1Kagura/CREAMpy/actions/workflows/ci.yml)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
+Bass diffusion adoption model + DREAM closed-economy welfare model, all in Python.
+No Excel. No proprietary runtime. Zero runtime dependencies.
+
+```bash
+git clone https://github.com/H1nokam1Kagura/CREAMpy && cd CREAMpy
+pip install -e ".[dev]"
+python -m creampy --validate     # 36 tests, all pass
+python examples/full_pipeline.py # end-to-end Bass → welfare example
+```
+
+**Two modules, one pipeline:**
 
 ```
-pip install creampy          # PyPI (when published)
-python -m creampy --validate # 9 analytical test cases — all should pass
+BassModel(p, q, ceiling, ptrs)  →  adoption schedule
+                                          ↓
+ClosedEconomy(K, ε, η, P0, Q0)  →  NPV of ΔPS + ΔCS
 ```
+
+**Two execution paths:**
+- **Path A** — fully in Python: `Pipeline(bass_params, model_params).run()`
+- **Path B** — DREAMpy handoff: `to_dreampy_csv(bass_result, "adoption.csv")` → paste into DREAMpy Excel
 
 ---
 
