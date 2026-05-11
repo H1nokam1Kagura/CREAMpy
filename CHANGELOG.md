@@ -6,6 +6,38 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [Unreleased]
+
+### Added
+
+**`creampy.adoption.network_platform` — two-sided network-effects platform model**
+- `NetworkPlatformModel` class: 7-equation coupled system (provider Bass +
+  quality function + critical mass gate + downstream farmer Bass + cross-side
+  spillover feedback)
+- `NetworkPlatformParams` dataclass: p_p, q_p, M_p (provider side); sigma,
+  lambda_q, S_crit (network/quality); p_f, q_f, M_f_max, ptrs (farmer side);
+  N_p0 seed support
+- `NetworkPlatformResult` / `NetworkPlatformYearResult`: per-year provider
+  coverage S(t), quality Q(t), effective farmer market, farmer adoption; plus
+  peak_year, crit_mass_year
+- 9 analytical validation cases covering all degenerate cases including the
+  diffusion-peak timing test that guards the q_f normalisation invariant
+
+**Evaluation harness**
+- `eval/eval_network_platform.py`: 9 analytical tests + grid-search calibration
+  against M-Pesa Kenya synthetic data
+- `eval/eval_network_platform.ps1`: PS1 orchestrator with three phases; optional
+  GSMA real-data extraction via openpyxl
+- `eval/data/mpesa_kenya_synthetic.csv`: 2007–2020 reference dataset from CBK /
+  GSMA published reports; structural analog for LMIC platform calibration
+
+### Fixed
+- `NetworkPlatformModel._farmer_step`: imitation term `q_f` now uses normalised
+  adoption fraction rather than absolute count — without the fix, any q_f > 0
+  caused the entire farmer market to saturate within two years of launch
+
+---
+
 ## [1.0.0] — 2026-05-11
 
 Initial public release.

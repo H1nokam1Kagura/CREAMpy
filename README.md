@@ -16,12 +16,15 @@ python -m creampy --validate     # 36 tests, all pass
 python examples/full_pipeline.py # end-to-end Bass → welfare example
 ```
 
-**Two modules, one pipeline:**
+**Three adoption models, one welfare engine:**
 
 ```
-BassModel(p, q, ceiling, ptrs)  →  adoption schedule
-                                          ↓
-ClosedEconomy(K, ε, η, P0, Q0)  →  NPV of ΔPS + ΔCS
+BassModel(p, q, ceiling, ptrs)          →  standard S-curve adoption
+                                                    ↓
+NetworkPlatformModel(p_p, q_p, M_p,     →  two-sided platform with
+    sigma, S_crit, p_f, q_f, M_f_max)       critical mass & spillover
+                                                    ↓
+ClosedEconomy(K, ε, η, P0, Q0)          →  NPV of ΔPS + ΔCS
 ```
 
 **Two execution paths:**
@@ -45,6 +48,12 @@ for the closed-economy model family (see [Validation](#validation) below).
 **Typical use**: given a Big Bet or programme with a known yield improvement,
 adoption curve, and market parameters, estimate the NPV of producer and consumer
 welfare gains over a 15–25 year horizon.
+
+For **platform investments** (digital weather services, data-sharing networks,
+market-linking platforms), use `NetworkPlatformModel` — a coupled two-sided
+market model where provider adoption gates consumer adoption, and consumer
+uptake feeds back to recruit more providers. Calibrated against M-Pesa Kenya
+(2007–2020) as the best available LMIC platform dataset.
 
 ---
 
@@ -298,6 +307,57 @@ risk-adjusted upstream.
 
 ---
 
+## Network-effects platform model
+
+For investments where a supply-side network must reach critical mass before
+end-user adoption can take off — digital infrastructure, data-sharing
+platforms, payment rails — use `NetworkPlatformModel`.
+
+```python
+from creampy.adoption.network_platform import NetworkPlatformModel, NetworkPlatformParams
+from creampy import ModelParams, ClosedEconomy
+
+platform = NetworkPlatformParams(
+    p_p=0.02, q_p=0.30, M_p=50.0,        # provider Bass: 50 addressable NMHS
+    sigma=0.10,                            # cross-side spillover coefficient
+    lambda_q=5.0,                          # quality saturation rate
+    S_crit=0.20,                           # 20% provider coverage needed before farmers adopt
+    p_f=0.005, q_f=0.35,                   # farmer Bass coefficients
+    M_f_max=5_000_000.0, ptrs=0.85,        # 5M farmers, 85% success probability
+    t0=2025, years=list(range(2025, 2046)),
+)
+result = NetworkPlatformModel(platform).run()
+print(f"Critical mass year: {result.crit_mass_year}")
+print(f"Peak farmer recruitment: {result.peak_year}")
+
+# Feed adoption schedule into welfare model
+welfare = ClosedEconomy(ModelParams(
+    K=0.08, epsilon=0.5, eta=-0.5, P0=200.0, Q0=5_000_000.0,
+    years=result.years, adoption_fracs=result.adoption_fracs,
+    discount_rate=0.05, base_year=2025,
+)).run()
+print(f"NPV welfare: USD {welfare.npv_W:,.0f}")
+```
+
+The seven-equation coupled system and full parameter descriptions are in
+[`src/creampy/adoption/network_platform.py`](src/creampy/adoption/network_platform.py).
+
+### Evaluating against real data
+
+The harness in `eval/eval_network_platform.py` runs 9 analytical tests and
+calibrates to M-Pesa Kenya (2007–2020) as the best available LMIC two-sided
+platform dataset. Optionally accepts a real GSMA Global Mobile Money Excel file.
+
+```bash
+# Analytical tests + M-Pesa calibration:
+python eval/eval_network_platform.py --calibrate --report report.md
+
+# With real GSMA data (download from gsma.com):
+.\eval\eval_network_platform.ps1 -GsmaFile "path\to\GSMA_MobileMoney.xlsx"
+```
+
+---
+
 ## API reference
 
 ### `ModelParams`
@@ -334,6 +394,19 @@ risk-adjusted upstream.
 ```python
 model  = ClosedEconomy(params: ModelParams)
 result = model.run() -> ModelResult
+```
+
+### `NetworkPlatformModel`
+
+```python
+from creampy.adoption.network_platform import NetworkPlatformModel, NetworkPlatformParams
+
+result = NetworkPlatformModel(params: NetworkPlatformParams).run()
+# -> NetworkPlatformResult
+#    .adoption_fracs  : risk-adjusted farmer adoption (pass to ModelParams)
+#    .provider_coverage: installed base fraction S(t) per year
+#    .crit_mass_year  : first year S(t) >= S_crit (None if never reached)
+#    .peak_year       : year of highest new farmer recruitment
 ```
 
 ### `k_from_yield_gain`
