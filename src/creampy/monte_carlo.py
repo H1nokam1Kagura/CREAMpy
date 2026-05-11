@@ -100,6 +100,7 @@ from .model import ClosedEconomy, ModelParams
 from .adoption.bass import BassModel, BassParams
 from .adoption.pipeline import TwoStageBassParams, TwoStagePipeline
 from .adoption.network_platform import NetworkPlatformModel, NetworkPlatformParams
+from .adoption.seir import SeirModel, SeirParams
 
 __all__ = [
     # Distribution sampling
@@ -109,12 +110,14 @@ __all__ = [
     "MCModelParams",
     "MCTwoStageParams",
     "MCNetworkPlatformParams",
+    "MCSeirParams",
     # Result container
     "MCResult",
     # Runners
     "run_bass_welfare_mc",
     "run_two_stage_welfare_mc",
     "run_platform_welfare_mc",
+    "run_seir_welfare_mc",
 ]
 
 
@@ -278,6 +281,40 @@ class MCNetworkPlatformParams:
             t0       = self.t0,
             years    = self.years,
             N_p0     = self.N_p0,
+        )
+
+
+@dataclasses.dataclass
+class MCSeirParams:
+    """Distribution specifications for a SEIR + vaccination programme run."""
+    beta:                dict
+    sigma:               dict
+    gamma:               dict
+    initial_prevalence:  dict
+    coverage_target:     dict
+    coverage_ramp_years: int         # fixed — integer, not sampled
+    waning_rate:         dict
+    t0:                  int
+    years:               list[int]
+    ptrs:                dict
+    initial_E_fraction:  dict | None = None   # None = {"dist":"fixed","value":0.0}
+
+    def draw(self) -> SeirParams:
+        """Sample one concrete SeirParams."""
+        return SeirParams(
+            beta               = sample(self.beta),
+            sigma              = sample(self.sigma),
+            gamma              = sample(self.gamma),
+            initial_prevalence = sample(self.initial_prevalence),
+            coverage_target    = sample(self.coverage_target),
+            coverage_ramp_years= self.coverage_ramp_years,
+            waning_rate        = sample(self.waning_rate),
+            ptrs               = sample(self.ptrs),
+            t0                 = self.t0,
+            years              = self.years,
+            initial_E_fraction = sample(self.initial_E_fraction)
+                                 if self.initial_E_fraction is not None
+                                 else 0.0,
         )
 
 
@@ -469,6 +506,47 @@ def run_platform_welfare_mc(
             plat_p   = platform.draw()
             plat_res = NetworkPlatformModel(plat_p).run()
             model_p  = welfare.draw(plat_res.years, plat_res.adoption_fracs)
+            r        = ClosedEconomy(model_p).run()
+            npv_W.append(r.npv_W)
+            npv_PS.append(r.npv_PS)
+            npv_CS.append(r.npv_CS)
+        except (ValueError, ZeroDivisionError, OverflowError):
+            n_failed += 1
+
+    return MCResult(
+        n_samples=n, npv_W=npv_W, npv_PS=npv_PS,
+        npv_CS=npv_CS, n_failed=n_failed,
+    )
+
+
+def run_seir_welfare_mc(
+    seir:    MCSeirParams,
+    welfare: MCModelParams,
+    n:       int        = 1_000,
+    seed:    int | None = None,
+) -> MCResult:
+    """Monte Carlo over a SEIR vaccination programme + ClosedEconomy welfare run.
+
+    Parameters
+    ----------
+    seir : MCSeirParams
+        Distributions over SEIR + vaccination parameters.
+    welfare : MCModelParams
+        K = productivity loss per infectious fraction of herd
+        (e.g. 0.10 = 10 % yield loss per fraction-sick).
+    n, seed : as per run_bass_welfare_mc.
+    """
+    if seed is not None:
+        random.seed(seed)
+
+    npv_W, npv_PS, npv_CS = [], [], []
+    n_failed = 0
+
+    for _ in range(n):
+        try:
+            seir_p   = seir.draw()
+            seir_res = SeirModel(seir_p).run()
+            model_p  = welfare.draw(seir_res.years, seir_res.adoption_fracs)
             r        = ClosedEconomy(model_p).run()
             npv_W.append(r.npv_W)
             npv_PS.append(r.npv_PS)

@@ -45,10 +45,12 @@ from .monte_carlo import (
     MCModelParams,
     MCTwoStageParams,
     MCNetworkPlatformParams,
+    MCSeirParams,
     MCResult,
     run_bass_welfare_mc,
     run_two_stage_welfare_mc,
     run_platform_welfare_mc,
+    run_seir_welfare_mc,
 )
 
 __all__ = [
@@ -69,9 +71,11 @@ __all__ = [
     "MCModelParams",
     "MCTwoStageParams",
     "MCNetworkPlatformParams",
+    "MCSeirParams",
     "MCResult",
     "run_bass_welfare_mc",
     "run_two_stage_welfare_mc",
     "run_platform_welfare_mc",
+    "run_seir_welfare_mc",
     # Adoption sub-package importable as creampy.adoption.*
 ]

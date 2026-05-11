@@ -1,6 +1,7 @@
 """CREAMpy adoption sub-package — Bass diffusion model and pipeline."""
 
 from .bass import BassModel, BassParams, BassResult, BassYearResult
+from .seir import SeirModel, SeirParams, SeirResult, SeirYearResult
 from .pipeline import (
     Pipeline,
     PipelineResult,
@@ -17,6 +18,11 @@ __all__ = [
     "BassYearResult",
     "BassResult",
     "BassModel",
+    # SEIR + vaccination programme model
+    "SeirParams",
+    "SeirYearResult",
+    "SeirResult",
+    "SeirModel",
     # Single-stage pipeline (Bass → welfare)
     "Pipeline",
     "PipelineResult",
